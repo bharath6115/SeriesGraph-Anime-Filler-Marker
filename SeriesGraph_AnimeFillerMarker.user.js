@@ -64,10 +64,10 @@
 
     function markFiller() {
 
-        if(fillerSet.size === 0) return;
-
         const eps = document.querySelectorAll("rect");
         document.querySelectorAll('.filler-overlay').forEach(el => el.remove());
+
+        if(fillerSet.size === 0) return;
 
         eps.forEach((ep, i) => {
             if (fillerSet.has(i + 1)) {
@@ -186,8 +186,6 @@
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-
-
 
     // Initial calls
     fetchFillerEpisodes();
