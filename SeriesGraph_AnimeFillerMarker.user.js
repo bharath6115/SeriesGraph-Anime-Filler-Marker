@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name          SeriesGraph - Filler Tracker
 // @namespace     http://tampermonkey.net/
-// @version       1.2
+// @version       2.1.0
 // @description   Show the filler episodes using different color.
-// @author        You
+// @author        bubluwu
 // @match         https://seriesgraph.com/*
-// @grant         none
+// @grant         GM_xmlhttpRequest
+// @connect       www.animefillerlist.com
 // ==/UserScript==
 
 (async function() {
@@ -16,13 +17,23 @@
 
     const toSkewerCase = (text) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\s_]+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
 
-    function coverFiller(rectEl) {
+    function coverFiller(rectEl, episodeNumber) {
         const rect = rectEl.getBoundingClientRect();
+        const left = rect.left + window.scrollX;
+        const top = rect.top + window.scrollY;
         const div = document.createElement('div');
+        //todo: can check for changes in such a way that if the cover's top and left dont align with the rect's top and left then we have to remark.
+
+        div.dataset.left = left;
+        div.dataset.top = top;
+        div.dataset.episodeNumber = episodeNumber;
+
+        div.className = 'filler-overlay';
+
         Object.assign(div.style, {
             position: 'absolute',
-            left: `${rect.left + window.scrollX}px`,
-            top: `${rect.top + window.scrollY}px`,
+            left: `${left}px`,
+            top: `${top}px`,
             backgroundColor: 'rgba(0, 0, 0, 0.40)',
             width: `${rect.width}px`,
             height: `${rect.height}px`,
@@ -32,14 +43,13 @@
             borderRadius: "5px",
             pointerEvents: 'none'
         });
-        div.className = 'filler-overlay';
+
         document.body.appendChild(div);
     }
 
     async function fetchFillerEpisodes() {
-
         const segments = window.location.pathname.split('/').filter(Boolean);
-        if (segments.length != 2) return;
+        if (segments.length !== 2) return;
 
         const titleEl = document.querySelector(".rt-Heading");
         if (!titleEl) return;
@@ -47,23 +57,80 @@
         const animeName = titleEl.innerText;
         if (animeName === currAnime) return;
 
-        try {
-            const res = await fetch(`https://filler-list.chaiwala-anime.workers.dev/${toSkewerCase(animeName)}`);
-            const { fillerEpisodes } = await res.json();
+        const slug = toSkewerCase(animeName);
+        const url = `https://www.animefillerlist.com/shows/${slug}`;
 
-            fillerSet = new Set(fillerEpisodes.map(Number));
+        console.log("Fetching filler data from:", url);
+
+        try {
+            const html = await new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: url,
+
+                    onload: (res) => {
+                        if (res.status >= 200 && res.status < 300) {
+                            resolve(res.responseText);
+                        } else {
+                            reject(new Error(`HTTP ${res.status}`));
+                        }
+                    },
+
+                    onerror: (err) => {
+                        reject(new Error("GM_xmlhttpRequest failed"));
+                    }
+                });
+            });
+
+            const doc = new DOMParser().parseFromString(html, "text/html");
+
+            const fillerEpisodes = [];
+
+            doc.querySelectorAll("div.filler span.Label").forEach(label => {
+
+                if (label.textContent.trim() !== "Filler Episodes:") return;
+                const text = label.nextElementSibling?.textContent.trim();
+
+                if (!text) return;
+
+                text.split(",").forEach(ep => {
+                    ep = ep.trim();
+
+                    if (ep.includes("-")) {
+                        const [start, end] = ep.split("-").map(Number);
+
+                        if (!Number.isNaN(start) && !Number.isNaN(end)) {
+                            for (let i = start; i <= end; i++) {
+                                fillerEpisodes.push(i);
+                            }
+                        }
+                    } else {
+                        const episode = Number(ep);
+
+                        if (!Number.isNaN(episode)) {
+                            fillerEpisodes.push(episode);
+                        }
+                    }
+                });
+            });
+
+            fillerSet = new Set(fillerEpisodes);
             currAnime = animeName;
 
             console.log("Fetched new data for:", animeName);
-            console.log("Filler episodes:", ...fillerSet);
+            console.log(
+                "Filler episodes: [" + fillerSet.size + "]",
+                ...fillerSet
+            );
+
             markFiller();
+
         } catch (e) {
             console.error("Failed to fetch fillers:", e);
         }
     }
 
     function markFiller() {
-
         const eps = document.querySelectorAll("rect");
         document.querySelectorAll('.filler-overlay').forEach(el => el.remove());
 
@@ -71,7 +138,7 @@
 
         eps.forEach((ep, i) => {
             if (fillerSet.has(i + 1)) {
-                coverFiller(ep);
+                coverFiller(ep, i+1);
             }
         });
     }
@@ -159,16 +226,12 @@
             fillerSet = new Set(); // Reset
             currAnime = ""; // Reset
             fetchFillerEpisodes();
-
-            if (document.querySelectorAll("rect").length > 0) {
-                markFiller();
-            }
         }
 
-        //To detect the scrollArea changes
-        const selectTriggerInner = document.querySelector(".rt-SelectTriggerInner");
+        //To detect the scrollArea changes (layout only, not public/seriesgraph ratings)
+        const selectTriggerInner = document.querySelectorAll(".rt-SelectTriggerInner")[1];
         if (selectTriggerInner) {
-            const currentText = selectTriggerInner.children[0].children[0].innerText;
+            const currentText = selectTriggerInner.innerText;
             if (currentText !== lastSelectionText) {
                 lastSelectionText = currentText;
                 console.log("Dropdown changed to:", currentText);
@@ -189,6 +252,6 @@
 
     // Initial calls
     fetchFillerEpisodes();
-    setTimeout(()=>markFiller(),500); //might be redundant but atp idgaf
+    setTimeout(markFiller,500); //might be redundant but atp idgaf
     window.addEventListener('resize', markFiller);
 })();
