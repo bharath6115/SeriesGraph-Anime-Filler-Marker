@@ -18,9 +18,9 @@ This is a Tampermonkey userscript that automatically highlights filler episodes 
 
 1. Install the **Tampermonkey** extension for your browser ([Chrome](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo), [Firefox](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)).
 2. Open the `SeriesGraph_AnimeFillerMarker.user.js` file in this repository and click the **Raw** button.
-3. Open the Tampermonkey dashboard and click the **Create a new script** button.<br/>
-   <img width="321" height="353" alt="Tampermonkey create new script button" src="https://github.com/user-attachments/assets/4f82bded-a6ad-4dd1-80fa-b9ce1f0d5f92" />
-4. Copy the code from the **Raw** page, paste it into the new script, and save it (Ctrl + S).
+3. You will be redirected to the Tampermonkey Userscript Installation page. _(The redirection only happens if you have the extension installed)_
+   <img width="1896" height="389" alt="image" src="https://github.com/user-attachments/assets/7c6489a1-0f26-451c-a27b-abf7a2565095" />
+4. Click on install.
 5. Navigate to any series on [SeriesGraph.com](https://seriesgraph.com/) to see it in action.
 
 ## 🛠️ How it Works
