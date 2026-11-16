@@ -1,9 +1,10 @@
 // ==UserScript==
-// @name          SeriesGraph - Filler Tracker
+// @name          SeriesGraph: Filler Tracker
 // @namespace     http://tampermonkey.net/
 // @version       2.1.0
 // @description   Show the filler episodes using different color.
-// @author        bubluwu
+// @author        Bharath
+// @icon          https://www.google.com/s2/favicons?sz=64&domain=seriesgraph.com
 // @match         https://seriesgraph.com/*
 // @grant         GM_xmlhttpRequest
 // @connect       www.animefillerlist.com
@@ -131,7 +132,7 @@
     }
 
     function markFiller() {
-        const eps = document.querySelectorAll("rect");
+        const eps = document.querySelector(".rt-ScrollAreaViewport").querySelectorAll("rect") || document.querySelectorAll("rect");
         document.querySelectorAll('.filler-overlay').forEach(el => el.remove());
 
         if(fillerSet.size === 0) return;
@@ -239,11 +240,11 @@
             }
         }
 
-        //Elevate the tooltips so they appear on top of the marked episodes
-        const tooltips = document.querySelectorAll('[role="tooltip"], [data-radix-popper-content-wrapper], .rt-TooltipContent');
-        tooltips.forEach(tip => {
-            if (tip.style.zIndex !== '1000000') {
-                tip.style.zIndex = '1000000';
+        //Elevate the tooltips, episode card (on click) so they appear on top of the marked episodes
+        const needElevation = document.querySelectorAll('[role="tooltip"], [data-radix-popper-content-wrapper], .rt-TooltipContent, .graph-tooltip, div.radix-themes.rt-BaseDialogOverlay.rt-DialogOverlay');
+        needElevation.forEach(ele => {
+            if (ele.style.zIndex !== '1000') {
+                ele.style.zIndex = '1000';
             }
         });
     });
